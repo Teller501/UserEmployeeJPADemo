@@ -1,5 +1,9 @@
 package dk.kea.useremployee.controller;
 
+import dk.kea.useremployee.dto.EmployeeConverter;
+import dk.kea.useremployee.dto.EmployeeDTO;
+import dk.kea.useremployee.dto.UserConverter;
+import dk.kea.useremployee.dto.UserDTO;
 import dk.kea.useremployee.model.Employee;
 import dk.kea.useremployee.model.User;
 import dk.kea.useremployee.repository.EmployeeRepository;
@@ -9,6 +13,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -20,17 +25,30 @@ public class EmployeeRestController {
     @Autowired
     UserRepository userRepository;
 
+    @Autowired
+    UserConverter userConverter;
+
+    @Autowired
+    EmployeeConverter employeeConverter;
+
 
     @GetMapping("/employees")
-    public List<Employee> getEmployees(){
-        return employeeRepository.findAll();
+    public List<EmployeeDTO> getEmployees(){
+        List<Employee> employees = employeeRepository.findAll();
+        List<EmployeeDTO> employeeDTOS = new ArrayList<>();
+
+        employees.forEach(e -> employeeDTOS.add(employeeConverter.toDTO(e)));
+        return employeeDTOS;
     }
 
     @PostMapping("/employee")
     @ResponseStatus(HttpStatus.CREATED)
-    public Employee postEmployee(@RequestBody Employee employee){
+    public EmployeeDTO postEmployee(@RequestBody EmployeeDTO employeeDTO){
+        Employee employee = employeeConverter.toEntity(employeeDTO);
+        employee.setId(0);
+        employeeRepository.save(employee);
         System.out.println(employee);
-        return employeeRepository.save(employee);
+        return employeeConverter.toDTO(employee);
     }
 
     @PostMapping("/user")
@@ -40,14 +58,24 @@ public class EmployeeRestController {
         return userRepository.save(user);
     }
 
+    @GetMapping("/users")
+    public List<UserDTO> getUsers(){
+        List<User> users= userRepository.findAll();
+        List<UserDTO> userDTOS = new ArrayList<>();
+
+        users.forEach(u -> userDTOS.add(userConverter.toDTO(u)));
+        return userDTOS;
+    }
+
     @PutMapping("employee/{id}")
-    public ResponseEntity<Employee> putEmployee(@PathVariable("id") int id, @RequestBody Employee employee){
+    public ResponseEntity<EmployeeDTO> putEmployee(@PathVariable("id") int id, @RequestBody EmployeeDTO employeeDTO){
         Optional<Employee> optEmployee = employeeRepository.findById(id);
         if (optEmployee.isPresent()){
+            Employee employee = employeeConverter.toEntity(employeeDTO);
             employee.setId(id);
             employeeRepository.save(employee);
             //return new ResponseEntity<>(student, HttpStatus.OK);
-            return ResponseEntity.ok(employee);
+            return ResponseEntity.ok(employeeConverter.toDTO(employee));
         } else {
             //return new ResponseEntity<>(new Student(), HttpStatus.NOT_FOUND);
             return ResponseEntity.notFound().build();
